@@ -1,0 +1,7 @@
+app_port = 8080
+[db_settings]
+username = "postgres"
+password = "password"
+db_name = "newsletter"
+port = 5432
+host = "127.0.0.1"
