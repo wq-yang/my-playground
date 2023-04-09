@@ -60,8 +60,9 @@ pub fn get_connect_option_default_db() -> Result<PgConnectOptions, config::Confi
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/config/default.toml");
     config::Config::builder()
-        .add_source(config::File::with_name("config/default.toml"))
+        .add_source(config::File::with_name(path))
         .build()?
         .try_deserialize::<Settings>()
 }

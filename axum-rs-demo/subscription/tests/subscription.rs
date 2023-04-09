@@ -3,7 +3,6 @@ use utils::spawn_app;
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
-    println!("----------------{:?}", std::env::current_dir());
     // Arrange
     let app = spawn_app().await;
     let client = reqwest::Client::new();

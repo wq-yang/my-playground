@@ -1,5 +1,6 @@
 use axum::{
-    extract::State,
+    extract::{MatchedPath, State},
+    http::Request,
     routing::{get, post, IntoMakeService},
     Form, Router, Server,
 };
@@ -8,6 +9,9 @@ use hyper::{server::conn::AddrIncoming, StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::net::TcpListener;
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
+use tracing::info_span;
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
@@ -22,8 +26,6 @@ async fn subscriptions(
     State(pool): State<PgPool>,
     Form(form): Form<SubscriptionForm>,
 ) -> StatusCode {
-    println!("the params are: {:?}", form);
-
     match sqlx::query!(
         r#"
     INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -49,6 +51,25 @@ pub fn run(
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscriptions))
+        .layer(
+            ServiceBuilder::new().layer(TraceLayer::new_for_http().make_span_with(
+                |request: &Request<_>| {
+                    // Log the matched route's path (with placeholders not filled in).
+                    // Use request.uri() or OriginalUri if you want the real path.
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
+
+                    info_span!(
+                        "http_request",
+                        method = ?request.method(),
+                        matched_path,
+                        some_other_field = tracing::field::Empty,
+                    )
+                },
+            )),
+        )
         .with_state(pool);
 
     let server = axum::Server::from_tcp(listener)
